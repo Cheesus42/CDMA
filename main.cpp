@@ -1,11 +1,19 @@
 #include <array>
+#include <bit>
 #include <bitset>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+
+template <std::size_t N>
+std::bitset<N> rotr(const std::bitset<N> &b, std::size_t k) {
+  k %= N;
+  return (b >> k) | (b << (N - k));
+}
 
 std::vector<int> read_file_to_vector(char *fileName) {
   std::ifstream FileReader(fileName);
@@ -37,7 +45,6 @@ std::array<chipset, 24> generate_chip_sequence() {
        {1, 4},  {2, 5}, {3, 6}, {4, 7}, {5, 8}, {6, 9},  {1, 3}, {4, 6}}};
 
   set10 mother1{"1111111111"};
-  set10 mother2{"1111111111"};
   std::array<chipset, 24> full_chipset;
 
   chipset m1_chipset;
@@ -54,6 +61,8 @@ std::array<chipset, 24> generate_chip_sequence() {
   // all the mother 2 factors
   for (int j = 0; j <= 23; j++) {
     chipset m2_chipset;
+
+    set10 mother2{"1111111111"};
     for (int i = 0; i < 1023; i++) {
       int lfactor = register_values[j].first;
       int rfactor = register_values[j].second;
@@ -66,26 +75,37 @@ std::array<chipset, 24> generate_chip_sequence() {
       mother2[0] = child;
       m2_chipset[i] = register_sum;
     }
-    for (int i = 0; i <= 23; i++) {
-      chipset final = m1_chipset ^ m2_chipset;
-      full_chipset[j] = final;
-    }
+    chipset final = m1_chipset ^ m2_chipset;
+    full_chipset[j] = final;
   }
 
   return full_chipset;
+}
+
+void extract_set(std::vector<int> message, chipset chip, int satellite) {
+
+  for (int offset = 0; offset < 1023; ++offset) {
+    int result = 0;
+    chipset rot_set = rotr(chip, offset);
+    for (int i = 0; i < 1023; i++) {
+      result += rot_set[i] == 1 ? message[i] : -message[i];
+    }
+    if (std::abs(result / 1023) == 1) {
+      int bit = result > 0 ? 1 : 0;
+      std::cout << "Satellite " << satellite << " has sent bit " << bit
+                << "  (delta = " << offset << ")" << std::endl;
+      return;
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
   char *fileName = argv[1];
   std::vector<int> signal = read_file_to_vector(fileName);
 
-  for (int e : signal) {
-    std::cout << e << std::endl;
-  }
   std::array<chipset, 24> chipsets = generate_chip_sequence();
-  for (chipset e : chipsets) {
-    print_chip(e);
-    std::cout << '\n';
+  for (int i = 0; i <= 23; i++) {
+    extract_set(signal, chipsets[i], i + 1);
   }
   return 0;
 }
