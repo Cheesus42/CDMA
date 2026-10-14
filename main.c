@@ -183,9 +183,10 @@ void extract_set_with_cond(int8_t *message, chipset chip, int satellite) {
   for (int offset = 0; offset < 1023; ++offset) {
     int result = 0;
     for (int i = 0; i < 1023; i++) {
-      if (offset >= 1023)
-        offset -= 1023;
-      bool chip_bit = chip[(i + offset)];
+      int idx = (offset + i);
+      if (idx >= 1023)
+        idx -= 1023;
+      bool chip_bit = chip[idx];
       result += chip_bit ? message[i] : -message[i];
     }
     if (abs(result / 1023) == 1) {
@@ -208,15 +209,37 @@ int main(int argc, char *argv[]) {
   }
   chipset sets[24];
   generate_chip_sequence(sets);
-  clock_t for (int i = 0; i <= 23; i++) { extract_set(signal, sets[i], i + 1); }
+  clock_t start, end;
+  double cpu_time_used;
+
+  start = clock();
+  for (int i = 0; i <= 23; i++) {
+    extract_set(signal, sets[i], i + 1);
+  }
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("full optimized with memcpy. estimated time: %f \n", cpu_time_used);
+
+  start = clock();
   for (int i = 0; i <= 23; i++) {
     extract_set_no_memcpy(signal, sets[i], i + 1);
   }
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("no memcpy. estimated time: %f \n", cpu_time_used);
+  start = clock();
   for (int i = 0; i <= 23; i++) {
     extract_set_with_cond(signal, sets[i], i + 1);
   }
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("conditional. estimated time: %f \n", cpu_time_used);
+  start = clock();
   for (int i = 0; i <= 23; i++) {
     extract_set_with_mod(signal, sets[i], i + 1);
   }
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("modulo. estimated time: %f \n", cpu_time_used);
   return 0;
 }

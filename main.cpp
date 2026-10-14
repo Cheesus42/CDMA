@@ -1,6 +1,7 @@
 #include <array>
 #include <bit>
 #include <bitset>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -103,9 +104,24 @@ int main(int argc, char *argv[]) {
   char *fileName = argv[1];
   std::vector<int> signal = read_file_to_vector(fileName);
 
-  std::array<chipset, 24> chipsets = generate_chip_sequence();
-  for (int i = 0; i <= 23; i++) {
-    extract_set(signal, chipsets[i], i + 1);
+  const auto start{std::chrono::steady_clock::now()};
+  std::array<chipset, 24> satellite_sequences = generate_chip_sequence();
+  const auto middle{std::chrono::steady_clock::now()};
+  for (int i = 0; i < satellite_sequences.size();
+       i++) { // prints generated chip_sequences
+    // std::cout << "id " << i+1 << ": " << satellite_sequences[i] << '\n';
+    extract_set(signal, satellite_sequences[i], i + 1);
   }
+  const auto finish{std::chrono::steady_clock::now()};
+
+  const std::chrono::duration<double> total_seconds{finish - start};
+  const std::chrono::duration<double> generator_seconds{middle - start};
+  const std::chrono::duration<double> extract_seconds{finish - middle};
+
+  std::cout << "total elapsed Time: " << total_seconds.count() << '\n';
+  std::cout << "Gold code Generator Time: " << generator_seconds.count()
+            << '\n';
+  std::cout << "code extraction Time: " << extract_seconds.count() << '\n';
+
   return 0;
 }
